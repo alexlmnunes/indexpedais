@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	db, err := sql.Open("mysql", "root:Lixo123@tcp(localhost:3306)/indexprojetos")
+	db, err := sql.Open("mysql", "root:Lixo123@tcp(127.0.0.1:3306)/indexprojetos")
 	if err != nil {
 		panic(err)
 	}
@@ -18,7 +18,6 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Println("Sucesso!")
-
-	ui.MostrarMenuPrinc()
+	fmt.Println("Banco de dados inicializado\n")
+	ui.MostrarMenuPrinc(db)
 }
