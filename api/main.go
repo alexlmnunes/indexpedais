@@ -18,6 +18,6 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Println("Banco de dados inicializado\n")
+	fmt.Println("Banco de dados inicializado\n.\n.\n.")
 	ui.MostrarMenuPrinc(db)
 }

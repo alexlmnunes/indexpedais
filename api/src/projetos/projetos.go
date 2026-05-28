@@ -25,12 +25,12 @@ func CadastrarProjeto(db *sql.DB) {
 
 	_, err := db.Exec("INSERT INTO projetos (nome, tipo, subtipo, link_circuito) VALUES (?, ?, ?, ?)", nome, tipo, subtipo, linkCircuito)
 	if err != nil {
-		log.Fatalf("Error inserting record: %v", err)
+		log.Fatal(err)
 	}
 
 	err = db.QueryRow("SELECT idproj FROM projetos WHERE nome = ?", nome).Scan(&idProj)
 	if err != nil {
-		log.Fatalf("Error retrieving record: %v", err)
+		log.Fatal(err)
 	}
 
 	// Loop para receber as peças do projeto, parando para cadastrar uma peça quando o mesmo ainda nao existir na tabela pecas, e conectando o id do projeto com o id do peça na tabela proj_pe
@@ -45,7 +45,7 @@ func CadastrarProjeto(db *sql.DB) {
 			if errors.Is(err, sql.ErrNoRows) {
 				var tipo, detalhe, voltagem string
 				var quant_estoque int
-				fmt.Println("Essa peça ainda não existe!")
+				fmt.Println("Essa peça ainda não existe!\n.\n.\n.")
 				fmt.Print("Digite o tipo da peça nova: ")
 				fmt.Scanln(&tipo)
 				fmt.Print("Digite o detalhe da peça nova: ")
@@ -54,16 +54,17 @@ func CadastrarProjeto(db *sql.DB) {
 				fmt.Scanln(&voltagem)
 				fmt.Print("Digite quantidade no estoque da peça nova: ")
 				fmt.Scanln(&quant_estoque)
+				fmt.Println("Cadastrando peça nova...\n.\n.\n.")
 				_, err := db.Exec("INSERT INTO pecas (tipo, valor, detalhe, voltagem, quant_estoque) VALUES (?, ?, ?, ?, ?)", tipo, entradaUsuario, detalhe, voltagem, quant_estoque)
 				if err != nil {
-					log.Fatalf("Error inserting record: %v", err)
+					log.Fatal(err)
 				}
 				err = db.QueryRow("SELECT LAST_INSERT_ID() FROM pecas").Scan(&idPeca)
 				if err != nil {
-					log.Fatalf("Error retrieving record: %v", err)
+					log.Fatal(err)
 				}
 			} else if err != nil {
-				log.Fatalf("Error retrieving record: %v", err)
+				log.Fatal(err)
 			}
 			fmt.Print("Digite a quantidade necessaria para fazer o projeto: ")
 			fmt.Scanln(&quant_nec)
@@ -73,7 +74,66 @@ func CadastrarProjeto(db *sql.DB) {
 	}
 }
 
-func BuscarProjeto() {
+func BuscarProjeto(db *sql.DB) {
+	var titulo, variavel, nome, tipo, subtipo, linkCircuito string
+	var id, escolha int
+	for escolha != 4 {
+		fmt.Println("Buscar por: \n1 - nome\n2 - tipo\n3 - link\n4 - voltar")
+		fmt.Scan(&escolha)
+		switch escolha {
+		case 1:
+			variavel = "nome"
+			fmt.Println("Digite o nome do projeto: ")
+			fmt.Scan(&titulo)
+		case 2:
+			variavel = "tipo"
+			fmt.Println("Digite o tipo de projeto: ")
+			fmt.Scan(&titulo)
+		case 3:
+			variavel = "link"
+			fmt.Println("Digite o link do projeto: ")
+			fmt.Scan(&titulo)
+		default:
+			fmt.Println("...")
+		}
+		titulo = fmt.Sprintf("'%s'", titulo)
+		query := fmt.Sprintf("SELECT idproj FROM projetos WHERE %s = %s", variavel, titulo)
+		err := db.QueryRow(query).Scan(&id)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		rows, err := db.Query("SELECT nome, tipo, subtipo, link_circuito FROM projetos WHERE idproj = ?", id)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+		for rows.Next() {
+			err := rows.Scan(&nome, &tipo, &subtipo, &linkCircuito)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		err = rows.Err()
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Nome: ", nome)
+		fmt.Println("Tipo: ", tipo)
+		fmt.Println("Subtipo: ", subtipo)
+		fmt.Println("Link do circuito: ", linkCircuito)
+
+		fmt.Println("\nVocê deseja:\n1 - Ver peças usadas nesse projeto\n2 - Verificar se você tem todas as peças\n3 - Voltar")
+		fmt.Scan(&escolha)
+		switch escolha {
+		case 1:
+
+		case 2:
+
+		case 3:
+			escolha = 4
+		}
+	}
 
 }
 

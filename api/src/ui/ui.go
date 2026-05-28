@@ -16,7 +16,7 @@ func MostrarMenuPrinc(db *sql.DB) {
 		case 1:
 			projetos.CadastrarProjeto(db)
 		case 2:
-			projetos.BuscarProjeto()
+			projetos.BuscarProjeto(db)
 		case 3:
 			fmt.Println("Voltando ao menu principal...")
 		default:
