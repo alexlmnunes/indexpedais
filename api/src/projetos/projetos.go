@@ -76,7 +76,7 @@ func CadastrarProjeto(db *sql.DB) {
 
 func BuscarProjeto(db *sql.DB) {
 	var titulo, variavel, nome, tipo, subtipo, linkCircuito string
-	var id, escolha int
+	var idproj, escolha int
 	for escolha != 4 {
 		fmt.Println("Buscar por: \n1 - nome\n2 - tipo\n3 - link\n4 - voltar")
 		fmt.Scan(&escolha)
@@ -98,12 +98,12 @@ func BuscarProjeto(db *sql.DB) {
 		}
 		titulo = fmt.Sprintf("'%s'", titulo)
 		query := fmt.Sprintf("SELECT idproj FROM projetos WHERE %s = %s", variavel, titulo)
-		err := db.QueryRow(query).Scan(&id)
+		err := db.QueryRow(query).Scan(&idproj)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		rows, err := db.Query("SELECT nome, tipo, subtipo, link_circuito FROM projetos WHERE idproj = ?", id)
+		rows, err := db.Query("SELECT nome, tipo, subtipo, link_circuito FROM projetos WHERE idproj = ?", idproj)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -123,23 +123,107 @@ func BuscarProjeto(db *sql.DB) {
 		fmt.Println("Subtipo: ", subtipo)
 		fmt.Println("Link do circuito: ", linkCircuito)
 
-		fmt.Println("\nVocê deseja:\n1 - Ver peças usadas nesse projeto\n2 - Verificar se você tem todas as peças\n3 - Voltar")
-		fmt.Scan(&escolha)
-		switch escolha {
-		case 1:
+		for escolha != 4 {
+			fmt.Println("\nVocê deseja:\n1 - Ver peças usadas nesse projeto\n2 - Verificar se você tem todas as peças\n3 - Voltar")
+			fmt.Scan(&escolha)
+			switch escolha {
+			case 1:
+				queryPecas :=
+					`SELECT p.tipo, p.valor, p.detalhe, p.voltagem, p.quant_estoque, pp.quant_pecas 
+					FROM proj_pe pp 
+					JOIN pecas p 
+					ON pp.idpe = p.idpe 
+					WHERE pp.idproj = ?`
+				rowsPecas, err := db.Query(queryPecas, idproj)
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer rowsPecas.Close()
+				fmt.Printf("\n--- Peças usadas no %s ---\n", nome)
 
-		case 2:
-
-		case 3:
-			escolha = 4
+				for rowsPecas.Next() {
+					var tipoPeca, valorPeca, detalhePeca, voltagemPeca string
+					var quantEstoque, quantNecessaria int
+					err := rowsPecas.Scan(&tipoPeca, &valorPeca, &detalhePeca, &voltagemPeca, &quantEstoque, &quantNecessaria)
+					if err != nil {
+						log.Fatal(err)
+					}
+					fmt.Printf("Tipo: %s | Valor: %s | Detalhe: %s | Voltagem: %s | Quantidade em estoque: %d | Quantidade necessária: %d\n", tipoPeca, valorPeca, detalhePeca, voltagemPeca, quantEstoque, quantNecessaria)
+				}
+				fmt.Print("-----------------------------------------------------\n")
+			case 2:
+				if compararQuantEstoque(db, idproj) {
+					fmt.Println("Você tem todas as peças necessárias para esse projeto! Deseja dar baixa no estoque e fazer o projeto?\n1 - Sim\n2 - Não")
+					var escolhaBaixa int
+					fmt.Scan(&escolhaBaixa)
+					switch escolhaBaixa {
+					case 1:
+						baixaQuantEstoque(db, idproj)
+						fmt.Print("Pronto!")
+					case 2:
+						break
+					}
+				} else {
+					fmt.Println("Você não tem todas as peças necessárias para esse projeto.")
+				}
+			case 3:
+				escolha = 4
+			default:
+				fmt.Println("Opção inválida.")
+			}
 		}
 	}
 
 }
 
-// type Projeto struct {
-// 	ID           int    `json:"id"`
-// 	Nome         string `json:"nome"`
-// 	Tipo         string `json:"tipo"`
-// 	LinkCircuito string `json:"link_circuito"`
-// 	Descricao    string `json:"descricao"`
+func compararQuantEstoque(db *sql.DB, idproj int) bool {
+	queryEstoque :=
+		`SELECT p.quant_estoque, pp.quant_pecas 
+				FROM proj_pe pp 
+				JOIN pecas p 
+				ON pp.idpe = p.idpe 
+				WHERE pp.idproj = ?`
+	rowsEstoque, err := db.Query(queryEstoque, idproj)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rowsEstoque.Close()
+	temTodasPecas := true
+	for rowsEstoque.Next() {
+		var quantEstoque, quantNecessaria int
+		err := rowsEstoque.Scan(&quantEstoque, &quantNecessaria)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if quantEstoque < quantNecessaria {
+			temTodasPecas = false
+		}
+	}
+	return temTodasPecas
+}
+
+func baixaQuantEstoque(db *sql.DB, idproj int) {
+	queryEstoque :=
+		`SELECT p.quant_estoque, pp.quant_pecas 
+		FROM proj_pe pp 
+		JOIN pecas p 
+		ON pp.idpe = p.idpe 
+		WHERE pp.idproj = ?`
+	rowsEstoque, err := db.Query(queryEstoque, idproj)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rowsEstoque.Close()
+	for rowsEstoque.Next() {
+		var quantEstoque, quantNecessaria int
+		err := rowsEstoque.Scan(&quantEstoque, &quantNecessaria)
+		if err != nil {
+			log.Fatal(err)
+		}
+		quantAtualizada := quantEstoque - quantNecessaria
+		_, err = db.Exec("UPDATE pecas p JOIN proj_pe pp ON p.idpe = pp.idpe SET p.quant_estoque = ? WHERE pp.idproj = ?", quantAtualizada, idproj)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
