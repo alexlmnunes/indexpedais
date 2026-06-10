@@ -3,48 +3,23 @@ package pecas
 import (
 	"database/sql"
 	"fmt"
+	"go-index-projetos/api/src/models"
 	"log"
 )
 
-type Peca struct {
-	IDpe         int
-	Tipo         string
-	Valor        string
-	Detalhe      string
-	Voltagem     string
-	QuantEstoque int
-}
-
 func CadastrarPeca(db *sql.DB) {
-	var pe Peca
-	fmt.Print("Digite o tipo da peça: ")
-	fmt.Scanln(&pe.Tipo)
-	fmt.Print("Digite o valor da peça: ")
-	fmt.Scanln(&pe.Valor)
-	fmt.Print("Digite o detalhe da peça: ")
-	fmt.Scanln(&pe.Detalhe)
-	fmt.Print("Digite a voltagem da peça: ")
-	fmt.Scanln(&pe.Voltagem)
-	fmt.Print("Digite a quantidade no estoque da peça: ")
-	fmt.Scanln(&pe.QuantEstoque)
+
+	pe := inputCadastroPeca()
 	_, err := db.Exec("INSERT INTO pecas (tipo, valor, detalhe, voltagem, quant_estoque) VALUES (?, ?, ?, ?, ?)", pe.Tipo, pe.Valor, pe.Detalhe, pe.Voltagem, pe.QuantEstoque)
 	if err != nil {
 		fmt.Println("Erro ao cadastrar peça:", err)
 	} else {
-		fmt.Println("Peça cadastrada com sucesso!")
+		fmt.Println("Peça cadastrada com sucesso!\n")
 	}
 }
 
 func CadastrarPecaDeProjeto(db *sql.DB, valor string) int {
-	var pe Peca
-	fmt.Print("Digite o tipo da peça: ")
-	fmt.Scanln(&pe.Tipo)
-	fmt.Print("Digite o detalhe da peça: ")
-	fmt.Scanln(&pe.Detalhe)
-	fmt.Print("Digite a voltagem da peça: ")
-	fmt.Scanln(&pe.Voltagem)
-	fmt.Print("Digite a quantidade no estoque da peça: ")
-	fmt.Scanln(&pe.QuantEstoque)
+	pe := inputCadastroPecaComValor(valor)
 	result, err := db.Exec("INSERT INTO pecas (tipo, valor, detalhe, voltagem, quant_estoque) VALUES (?, ?, ?, ?, ?)", pe.Tipo, valor, pe.Detalhe, pe.Voltagem, pe.QuantEstoque)
 	if err != nil {
 		fmt.Println("Erro ao cadastrar peça:", err)
@@ -59,92 +34,51 @@ func CadastrarPecaDeProjeto(db *sql.DB, valor string) int {
 }
 
 func BuscarPeca(db *sql.DB) {
-	var termoBusca, colunaBusca string
-	var escolha, escolhaBusca int
-	var pe Peca
-	fmt.Println(("Buscar por:\n1 - Tipo\n2 - Valor\n3 - Detalhe\n4 - Voltar"))
-	for escolha != 4 {
-		fmt.Scan(&escolha)
-		switch escolha {
-		case 1:
-			colunaBusca = "tipo"
-			fmt.Print("Digite o tipo da peça: ")
-			fmt.Scanln(&termoBusca)
-		case 2:
-			colunaBusca = "valor"
-			fmt.Print("Digite o valor da peça: ")
-			fmt.Scanln(&termoBusca)
-		case 3:
-			colunaBusca = "detalhe"
-			fmt.Print("Digite o detalhe da peça: ")
-			fmt.Scanln(&termoBusca)
-		case 4:
-			break
-		default:
-			fmt.Println("Opção inválida.")
-			return
-		}
-		query := fmt.Sprintf("SELECT idpe, tipo, valor, detalhe, voltagem, quant_estoque FROM pecas WHERE %s = ?", colunaBusca)
-		rows, err := db.Query(query, termoBusca)
+	var pe models.Peca
+	termoBusca, colunaBusca := inputBuscarPeca()
+	if colunaBusca == "" && termoBusca == "" {
+		return
+	}
+
+	query := fmt.Sprintf("SELECT idpe, tipo, valor, detalhe, voltagem, quant_estoque FROM pecas WHERE %s = ?", colunaBusca)
+	rows, err := db.Query(query, termoBusca)
+	if err != nil {
+		fmt.Println("Erro ao buscar peça:", err)
+	}
+	defer rows.Close()
+
+	var listaPecas []models.Peca
+	fmt.Print("\n---Peças Encontradas---\n")
+	contador := 1
+	for rows.Next() {
+		err := rows.Scan(&pe.IDpe, &pe.Tipo, &pe.Valor, &pe.Detalhe, &pe.Voltagem, &pe.QuantEstoque)
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer rows.Close()
-
-		var listaPecas []Peca
-		fmt.Print("\n---Peças Encontradas---\n")
-		contador := 1
-		for rows.Next() {
-			err := rows.Scan(&pe.IDpe, &pe.Tipo, &pe.Valor, &pe.Detalhe, &pe.Voltagem, &pe.QuantEstoque)
-			if err != nil {
-				log.Fatal(err)
-			}
-			listaPecas = append(listaPecas, pe)
-			fmt.Printf("%d - Tipo: %s | Valor: %s\n", contador, pe.Tipo, pe.Valor)
-			contador++
-		}
-
-		if len(listaPecas) == 0 {
-			fmt.Println("Nenhuma peça encontrada...")
-			break
-		}
-		fmt.Println("Digite o número da peça que você deseja: ")
-		fmt.Scan(&escolhaBusca)
-		if escolhaBusca < 1 || escolhaBusca > len(listaPecas) {
-			fmt.Println("Número inválido...")
-			break
-		}
-
-		pe := listaPecas[escolhaBusca-1]
-		idPeca := pe.IDpe
-		fmt.Printf("Tipo: %s\nValor: %s\nDetalhe: %s\nVoltagem: %s\nQuantidade em estoque: %d\n",
-			pe.Tipo, pe.Valor, pe.Detalhe, pe.Voltagem, pe.QuantEstoque)
-
-		for escolha != 4 {
-			fmt.Println("\nVocê deseja:\n1 - Aumentar quantidade em estoque\n2 - Reduzir quantidade em estoque\n3 - Voltar")
-			fmt.Scan(&escolha)
-			switch escolha {
-			case 1:
-				var somaQuantidade int
-				fmt.Print("Digite a quantidade a ser adicionada: ")
-				fmt.Scan(&somaQuantidade)
-				pe.QuantEstoque += somaQuantidade
-			case 2:
-				var subtraiQuantidade int
-				fmt.Print("Digite a quantidade a ser removida: ")
-				fmt.Scan(&subtraiQuantidade)
-				pe.QuantEstoque -= subtraiQuantidade
-			case 3:
-				break
-			default:
-				fmt.Println("Opção inválida.")
-				return
-			}
-			alterarEstoquePeca(db, idPeca, pe.QuantEstoque)
-			fmt.Printf("Quantidade atualizada: %d\n", pe.QuantEstoque)
-		}
-
+		listaPecas = append(listaPecas, pe)
+		fmt.Printf("%d - Tipo: %s | Valor: %s | Quantidade em estoque: %d\n", contador, pe.Tipo, pe.Valor, pe.QuantEstoque)
+		contador++
 	}
+
+	if len(listaPecas) == 0 {
+		fmt.Println("Nenhuma peça encontrada...")
+		return
+	}
+
+	escolhaBusca := inputEscolhaPeca(len(listaPecas))
+
+	pe = listaPecas[escolhaBusca-1]
+	idPeca := pe.IDpe
+	fmt.Printf("Tipo: %s\nValor: %s\nDetalhe: %s\nVoltagem: %s\nQuantidade em estoque: %d\n",
+		pe.Tipo, pe.Valor, pe.Detalhe, pe.Voltagem, pe.QuantEstoque)
+
+	quantidade := inputAlterarEstoqueBusca()
+
+	if quantidade == 0 {
+		return
+	}
+	alterarEstoquePeca(db, idPeca, pe.QuantEstoque+quantidade)
+	fmt.Printf("Quantidade atualizada: %d\n", pe.QuantEstoque+quantidade)
 
 }
 
@@ -152,5 +86,14 @@ func alterarEstoquePeca(db *sql.DB, idPeca int, novaQuantidade int) {
 	_, err := db.Exec("UPDATE pecas SET quant_estoque = ? WHERE idpe = ?", novaQuantidade, idPeca)
 	if err != nil {
 		fmt.Println("Erro ao alterar quantidade da peça:", err)
+	}
+}
+
+func JuntarIdPecaComIdProjeto(db *sql.DB, idProj int, idPeca int) {
+	quant_nec := inputQuantidadeNecessaria()
+
+	_, err := db.Exec("INSERT INTO proj_pe (idproj, idpe, quant_pecas) VALUES (?, ?, ?)", idProj, idPeca, quant_nec)
+	if err != nil {
+		fmt.Println("Erro ao conectar peça com projeto:", err)
 	}
 }
