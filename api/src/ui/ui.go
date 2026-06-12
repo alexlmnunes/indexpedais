@@ -3,8 +3,8 @@ package ui
 import (
 	"database/sql"
 	"fmt"
-	"go-index-projetos/api/src/pecas"
-	"go-index-projetos/api/src/projetos"
+	"go-index-projetos/src/pecas"
+	"go-index-projetos/src/projetos"
 )
 
 func MostrarMenuPrinc(db *sql.DB) {

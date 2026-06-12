@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"go-index-projetos/api/src/models"
-	"go-index-projetos/api/src/pecas"
+	"go-index-projetos/src/models"
+	"go-index-projetos/src/pecas"
 	"log"
 )
 

@@ -11,7 +11,8 @@ import (
 func main() {
 	db, err := sql.Open("mysql", "root:Lixo123@tcp(127.0.0.1:3306)/indexprojetos")
 	if err != nil {
-		panic(err)
+		fmt.Println("Erro ao conectar no banco de dados: ", err)
+		return
 	}
 	defer db.Close()
 	err = db.Ping()
@@ -19,5 +20,6 @@ func main() {
 		panic(err.Error())
 	}
 	fmt.Println("Banco de dados inicializado\n.\n.\n.")
+
 	ui.MostrarMenuPrinc(db)
 }

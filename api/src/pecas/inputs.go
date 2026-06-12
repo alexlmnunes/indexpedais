@@ -2,7 +2,7 @@ package pecas
 
 import (
 	"fmt"
-	"go-index-projetos/api/src/models"
+	"go-index-projetos/src/models"
 )
 
 func inputCadastroPeca() models.Peca {

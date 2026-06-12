@@ -3,7 +3,7 @@ package pecas
 import (
 	"database/sql"
 	"fmt"
-	"go-index-projetos/api/src/models"
+	"go-index-projetos/src/models"
 	"log"
 )
 

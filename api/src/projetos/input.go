@@ -2,7 +2,7 @@ package projetos
 
 import (
 	"fmt"
-	"go-index-projetos/api/src/models"
+	"go-index-projetos/src/models"
 )
 
 func inputProjeto() models.Projeto {
